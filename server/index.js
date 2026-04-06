@@ -75,6 +75,17 @@ app.use('/api/webhooks', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// ─── Health Check ─────────────────────────────────────────────────────────────
+app.get('/api/health', async (req, res) => {
+  try {
+    // Check database connection
+    await sequelize.authenticate();
+    res.json({ status: 'healthy', database: 'connected', timestamp: new Date().toISOString() });
+  } catch (error) {
+    res.status(503).json({ status: 'unhealthy', database: 'disconnected', error: error.message });
+  }
+});
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/org', orgRoutes);
