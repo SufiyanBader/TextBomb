@@ -4,15 +4,15 @@ let sequelize;
 
 const dbUri = process.env.DATABASE_URL;
 const sslOptions = process.env.RAILWAY_ENVIRONMENT || process.env.PGHOST?.includes('railway.app') 
-  ? false 
-  : { require: true, rejectUnauthorized: false };
+  ? { require: true, rejectUnauthorized: false }
+  : false;
 
 if (dbUri) {
   sequelize = new Sequelize(dbUri, {
     dialect: 'postgres',
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
     pool: { max: 10, min: 0, acquire: 30000, idle: 10000 },
-    ...(process.env.NODE_ENV === 'production' && {
+    ...(process.env.NODE_ENV === 'production' && sslOptions && {
       dialectOptions: { ssl: sslOptions }
     }),
   });
