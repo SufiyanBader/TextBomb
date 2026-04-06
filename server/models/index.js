@@ -1,19 +1,28 @@
 const { Sequelize, DataTypes } = require('sequelize');
 
-if (!process.env.DATABASE_URL) {
-  console.error('❌ CRITICAL: DATABASE_URL environment variable is missing.');
+let dbUri = process.env.DATABASE_URL;
+
+// On Railway, Postgres variables are provided individually by default
+if (!dbUri && process.env.PGHOST) {
+  const user = process.env.PGUSER;
+  const pass = process.env.PGPASSWORD;
+  const host = process.env.PGHOST;
+  const port = process.env.PGPORT || 5432;
+  const db = process.env.PGDATABASE;
+  dbUri = `postgres://${user}:${pass}@${host}:${port}/${db}`;
 }
 
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
+if (!dbUri) {
+  console.error('❌ CRITICAL: DATABASE_URL and PGHOST environment variables are both missing.');
+}
+
+const sequelize = new Sequelize(dbUri, {
   dialect: 'postgres',
   logging: process.env.NODE_ENV === 'development' ? console.log : false,
   pool: { max: 10, min: 0, acquire: 30000, idle: 10000 },
   ...(process.env.NODE_ENV === 'production' && {
     dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false, // Required for Railway/Heroku PostgreSQL
-      },
+      ssl: process.env.RAILWAY_ENVIRONMENT || process.env.PGHOST?.includes('railway.app') ? false : { require: true, rejectUnauthorized: false },
     },
   }),
 });
