@@ -1,9 +1,21 @@
 const { Sequelize, DataTypes } = require('sequelize');
 
+if (!process.env.DATABASE_URL) {
+  console.error('❌ CRITICAL: DATABASE_URL environment variable is missing.');
+}
+
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'postgres',
   logging: process.env.NODE_ENV === 'development' ? console.log : false,
   pool: { max: 10, min: 0, acquire: 30000, idle: 10000 },
+  ...(process.env.NODE_ENV === 'production' && {
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false, // Required for Railway/Heroku PostgreSQL
+      },
+    },
+  }),
 });
 
 // ─── Organization ─────────────────────────────────────────────────────────────
