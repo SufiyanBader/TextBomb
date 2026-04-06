@@ -7,6 +7,18 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 
+// Master Environment Check
+const requiredEnvVars = ['ENCRYPTION_KEY', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
+const missingVars = requiredEnvVars.filter(v => !process.env[v]);
+if (missingVars.length > 0) {
+  console.error('================================================================');
+  console.error('❌ FATAL ERROR: MISSING REQUIRED ENVIRONMENT VARIABLES! ❌');
+  console.error('The following variables must be set in your Railway / .env config:');
+  console.error(missingVars.join(', '));
+  console.error('================================================================');
+  process.exit(1);
+}
+
 const { sequelize } = require('./models');
 const { connectRedis } = require('./services/redisService');
 const { initQueues } = require('./jobs/campaignQueue');

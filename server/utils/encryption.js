@@ -1,5 +1,13 @@
 const crypto = require('crypto');
 
+if (!process.env.ENCRYPTION_KEY) {
+  console.error('================================================================');
+  console.error('❌ FATAL ERROR: NO ENCRYPTION_KEY FOUND! ❌');
+  console.error('You MUST add ENCRYPTION_KEY (64-character hex string) to your current environment variables.');
+  console.error('================================================================');
+  process.exit(1);
+}
+
 const ALGORITHM = 'aes-256-gcm';
 const KEY = Buffer.from(process.env.ENCRYPTION_KEY, 'hex'); // 32 bytes
 const IV_LENGTH = 16;
