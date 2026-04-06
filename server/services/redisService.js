@@ -3,7 +3,15 @@ const { createClient } = require('redis');
 let client = null;
 
 async function connectRedis() {
-  client = createClient({ url: process.env.REDIS_URL });
+  const redisUrl = process.env.REDIS_URL || process.env.REDIS_PRIVATE_URL || process.env.REDISURL;
+  if (!redisUrl) {
+    console.error('================================================================');
+    console.error('❌ FATAL ERROR: NO REDIS CONNECTION VARIABLES FOUND! ❌');
+    console.error('If you are on Railway, you MUST add a Redis service and link it.');
+    console.error('================================================================');
+    throw new Error('MISSING_REDIS_VARIABLES - Cannot start server without Redis link.');
+  }
+  client = createClient({ url: redisUrl });
   client.on('error', (err) => console.error('Redis error:', err));
   await client.connect();
   return client;

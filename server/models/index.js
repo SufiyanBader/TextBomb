@@ -1,31 +1,43 @@
 const { Sequelize, DataTypes } = require('sequelize');
 
-let dbUri = process.env.DATABASE_URL;
+let sequelize;
 
-// On Railway, Postgres variables are provided individually by default
-if (!dbUri && process.env.PGHOST) {
-  const user = process.env.PGUSER;
-  const pass = process.env.PGPASSWORD;
-  const host = process.env.PGHOST;
-  const port = process.env.PGPORT || 5432;
-  const db = process.env.PGDATABASE;
-  dbUri = `postgres://${user}:${pass}@${host}:${port}/${db}`;
+const dbUri = process.env.DATABASE_URL;
+const sslOptions = process.env.RAILWAY_ENVIRONMENT || process.env.PGHOST?.includes('railway.app') 
+  ? false 
+  : { require: true, rejectUnauthorized: false };
+
+if (dbUri) {
+  sequelize = new Sequelize(dbUri, {
+    dialect: 'postgres',
+    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    pool: { max: 10, min: 0, acquire: 30000, idle: 10000 },
+    ...(process.env.NODE_ENV === 'production' && {
+      dialectOptions: { ssl: sslOptions }
+    }),
+  });
+} else if (process.env.PGHOST) {
+  // Use individual variables to avoid URL encoding issues with special characters in passwords
+  sequelize = new Sequelize(process.env.PGDATABASE, process.env.PGUSER, process.env.PGPASSWORD, {
+    host: process.env.PGHOST,
+    port: process.env.PGPORT || 5432,
+    dialect: 'postgres',
+    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    pool: { max: 10, min: 0, acquire: 30000, idle: 10000 },
+    ...(process.env.NODE_ENV === 'production' && {
+      dialectOptions: { ssl: sslOptions }
+    }),
+  });
+} else {
+  console.error('================================================================');
+  console.error('❌ FATAL ERROR: NO DATABASE CONNECTION VARIABLES FOUND! ❌');
+  console.error('If you are on Railway, you MUST link the Postgres variables:');
+  console.error('1. Go to your TextBomb service in the Railway Dashboard');
+  console.error('2. Go to Variables');
+  console.error('3. Make sure DATABASE_URL or PGHOST is present.');
+  console.error('================================================================');
+  throw new Error('MISSING_DATABASE_VARIABLES - Cannot start server without a database link.');
 }
-
-if (!dbUri) {
-  console.error('❌ CRITICAL: DATABASE_URL and PGHOST environment variables are both missing.');
-}
-
-const sequelize = new Sequelize(dbUri, {
-  dialect: 'postgres',
-  logging: process.env.NODE_ENV === 'development' ? console.log : false,
-  pool: { max: 10, min: 0, acquire: 30000, idle: 10000 },
-  ...(process.env.NODE_ENV === 'production' && {
-    dialectOptions: {
-      ssl: process.env.RAILWAY_ENVIRONMENT || process.env.PGHOST?.includes('railway.app') ? false : { require: true, rejectUnauthorized: false },
-    },
-  }),
-});
 
 // ─── Organization ─────────────────────────────────────────────────────────────
 const Organization = sequelize.define('Organization', {
