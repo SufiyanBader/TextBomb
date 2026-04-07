@@ -34,7 +34,7 @@ export default function Login() {
         <div style={{ position: 'absolute', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle,rgba(108,71,255,.06) 0,transparent 70%)', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', pointerEvents: 'none' }} />
         <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', width: '100%', maxWidth: 280 }}>
           {/* Logo */}
-          <img src="/logo.png" alt="TextBomb logo" style={{ width: 56, height: 56, borderRadius: 14, display: 'block', margin: '0 auto 20px', objectFit: 'cover', boxShadow: '0 0 40px rgba(108,71,255,.4)' }} />
+          <img src="/logo.png" alt="TextBomb logo" style={{ width: 56, height: 56, borderRadius: 14, display: 'block', margin: '0 auto 20px', objectFit: 'cover', boxShadow: '0 0 40px rgba(34,211,238,.4)' }} />
           <div style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '1.3rem', marginBottom: 4 }}>TextBomb</div>
           <div style={{ fontSize: '0.75rem', color: 'var(--tx4)', letterSpacing: '.2em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 32 }}>WhatsApp Business Platform</div>
 

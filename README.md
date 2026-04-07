@@ -315,6 +315,82 @@ npm install
 
 ---
 
+## Deployment
+
+### Railway (Recommended)
+
+1. **Connect your GitHub repo** to Railway
+2. **Add environment variables** (copy from `server/.env.example`):
+   ```
+   DATABASE_URL=postgresql://postgres:password@containers-us-west-1.railway.app:xxxx/railway
+   REDIS_URL=redis://default:password@containers-us-west-1.railway.app:xxxx
+   JWT_SECRET=your_generated_secret
+   JWT_REFRESH_SECRET=your_generated_secret
+   ENCRYPTION_KEY=your_generated_key
+   META_APP_SECRET=your_meta_secret
+   META_WEBHOOK_VERIFY_TOKEN=your_webhook_token
+   CLIENT_URL=https://your-frontend-domain.com
+   ```
+3. **Railway will auto-detect** and deploy using the `railway.json` config
+4. **Database migration** happens automatically on first deploy
+
+### Render
+
+1. **Create a new Web Service** from your GitHub repo
+2. **Set build command**: `npm run build`
+3. **Set start command**: `npm start`
+4. **Add environment variables** as above
+5. **Add PostgreSQL and Redis** add-ons
+
+### Heroku
+
+1. **Create a new app** from your GitHub repo
+2. **Set buildpacks**:
+   - `heroku/nodejs`
+3. **Add environment variables** as above
+4. **Add PostgreSQL and Redis** add-ons
+5. **Deploy**
+
+### Manual Server
+
+For VPS deployment:
+
+```bash
+# 1. Install Node.js, PostgreSQL, Redis on your server
+# 2. Clone repo
+git clone your-repo-url
+cd textbomb
+
+# 3. Configure environment
+cp server/.env.example server/.env
+# Edit .env with your production values
+
+# 4. Install and build
+npm run install:all
+npm run build
+
+# 5. Start with PM2
+npm install -g pm2
+pm2 start ecosystem.config.js
+pm2 startup
+pm2 save
+```
+
+Create `ecosystem.config.js`:
+```javascript
+module.exports = {
+  apps: [{
+    name: 'textbomb',
+    script: 'server/index.js',
+    env: {
+      NODE_ENV: 'production'
+    }
+  }]
+};
+```
+
+---
+
 ## Project Structure
 
 ```

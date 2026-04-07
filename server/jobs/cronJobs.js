@@ -31,7 +31,7 @@ function startCronJobs() {
       for (const campaign of dueCampaigns) {
         console.log(`📤 Launching scheduled campaign: ${campaign.name}`);
         // Dispatch to campaign controller
-        const { launchCampaign } = require('../controllers/campaignController');
+        const { launchCampaign } = require('../routes/campaigns');
         await launchCampaign(campaign.id);
       }
     } catch (err) {

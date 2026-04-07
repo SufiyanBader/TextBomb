@@ -6,8 +6,8 @@ const { createNotification } = require('../services/notificationService');
 let campaignQueue = null;
 
 function initQueues() {
-  campaignQueue = new Bull('campaign-send', {
-    redis: process.env.REDIS_URL,
+  const redisUrl = process.env.REDIS_URL || process.env.REDIS_PRIVATE_URL || process.env.REDISURL || 'redis://127.0.0.1:6379';
+  campaignQueue = new Bull('campaign-send', redisUrl, {
     defaultJobOptions: {
       attempts: 3,
       backoff: { type: 'exponential', delay: 5000 },

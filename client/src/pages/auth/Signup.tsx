@@ -48,7 +48,7 @@ export default function Signup() {
       <div style={{ width: 440, minHeight: '100vh', background: 'var(--bg0)', borderRight: '1px solid var(--bdr)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 48px', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle,rgba(45,212,191,.05) 0,transparent 70%)', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', pointerEvents: 'none' }} />
         <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', width: '100%', maxWidth: 280 }}>
-          <img src="/logo.png" alt="TextBomb logo" style={{ width: 56, height: 56, borderRadius: 14, display: 'block', margin: '0 auto 20px', objectFit: 'cover', boxShadow: '0 0 40px rgba(108,71,255,.4)' }} />
+          <img src="/logo.png" alt="TextBomb logo" style={{ width: 56, height: 56, borderRadius: 14, display: 'block', margin: '0 auto 20px', objectFit: 'cover', boxShadow: '0 0 40px rgba(34,211,238,.4)' }} />
           <div style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '1.3rem', marginBottom: 4 }}>TextBomb</div>
           <div style={{ fontSize: '0.75rem', color: 'var(--tx4)', letterSpacing: '.2em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 32 }}>WhatsApp Business Platform</div>
           <div style={{ width: 28, height: 1, background: 'rgba(255,255,255,.12)', margin: '0 auto 24px' }} />
