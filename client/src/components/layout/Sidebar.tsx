@@ -5,10 +5,28 @@ import { useAuth } from '../../context/AuthContext';
 export default function Sidebar() {
   const { user, org, logout, isRole } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  React.useEffect(() => {
+    if (!org) return;
+    const fetchUnread = async () => {
+      try {
+        const res = await fetch('/api/conversations/unread-count', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const data = await res.json();
+        if (data.unreadCount !== undefined) setUnreadCount(data.unreadCount);
+      } catch (err) {}
+    };
+    fetchUnread();
+    const int = setInterval(fetchUnread, 15000); // Poll 15s
+    return () => clearInterval(int);
+  }, [org]);
+
   const handleLogout = async () => { setLoggingOut(true); try { await logout(); } catch { setLoggingOut(false); } };
   const initials = user?.name?.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase() || '?';
 
-  const ni = (path: string, icon: string, label: string) => (
+  const ni = (path: string, icon: string, label: string, badgeCount?: number) => (
     <NavLink key={path} to={path} style={({ isActive }) => ({
       display: 'flex', alignItems: 'center', gap: 9,
       padding: '8px 10px', borderRadius: 7, fontSize: 13,
@@ -21,6 +39,11 @@ export default function Sidebar() {
     })}>
       <span style={{ width: 18, textAlign: 'center', fontSize: 14, flexShrink: 0 }}>{icon}</span>
       {label}
+      {badgeCount !== undefined && badgeCount > 0 && (
+        <span style={{ marginLeft: 'auto', background: 'var(--red)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 10 }}>
+          {badgeCount > 99 ? '99+' : badgeCount}
+        </span>
+      )}
     </NavLink>
   );
 
@@ -40,6 +63,7 @@ export default function Sidebar() {
       <div className="s-nav">
         <div className="nav-sec">Platform</div>
         {ni('/dashboard', '◧', 'Dashboard')}
+        {ni('/inbox', '📥', 'Inbox', unreadCount)}
         {ni('/campaigns', '📨', 'Campaigns')}
         {ni('/templates', '📋', 'Templates')}
         {ni('/contacts', '👥', 'Contacts')}
@@ -60,7 +84,13 @@ export default function Sidebar() {
             <div className="nav-sec">Organization</div>
             {ni('/org/departments', '🏢', 'Departments')}
             {ni('/org/members', '👤', 'Members')}
-            {ni('/org/settings', '⚙️', 'Settings')}
+          </>
+        )}
+
+        {isRole('super_admin') && (
+          <>
+            <div className="nav-sec">Super Admin</div>
+            {ni('/admin/settings', '⚙️', 'Global Settings')}
           </>
         )}
       </div>

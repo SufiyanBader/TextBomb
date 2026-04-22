@@ -20,6 +20,8 @@ import NumberPool from './pages/admin/NumberPool';
 import Departments from './pages/organization/Departments';
 import Members from './pages/organization/Members';
 import OrgSettings from './pages/organization/OrgSettings';
+import InboxPage from './pages/inbox/InboxPage';
+import AdminSettings from './pages/admin/AdminSettings';
 import './index.css';
 
 function Loader() {
@@ -67,6 +69,7 @@ export default function App() {
           <Route path="/" element={<Protected><Layout /></Protected>}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Overview />} />
+            <Route path="inbox" element={<InboxPage />} />
             <Route path="campaigns" element={<CampaignList />} />
             <Route path="campaigns/new" element={<CreateCampaign />} />
             <Route path="campaigns/:id/analytics" element={<CampaignAnalytics />} />
@@ -78,6 +81,7 @@ export default function App() {
             <Route path="accounts" element={<WhatsAppAccounts />} />
             {/* Super Admin Only */}
             <Route path="admin/number-pool" element={<NumberPool />} />
+            <Route path="admin/settings" element={<AdminSettings />} />
             {/* Org Management */}
             <Route path="org/departments" element={<Departments />} />
             <Route path="org/members" element={<Members />} />

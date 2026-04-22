@@ -5,12 +5,14 @@ const GRAPH_API_BASE = `https://graph.facebook.com/${process.env.META_GRAPH_API_
 
 /**
  * Build axios instance for a WhatsApp account.
- * Decrypts stored API key before each call.
+ * Decrypts stored API key and dynamically respects Org API versions before each call.
  */
-function buildClient(apiKeyEncrypted) {
-  const apiKey = decrypt(apiKeyEncrypted);
+async function buildClient(account) {
+  const { getMetaCredentials } = require('./orgSettingsService');
+  const creds = await getMetaCredentials(account.organization_id);
+  const apiKey = decrypt(account.api_key_encrypted);
   return axios.create({
-    baseURL: GRAPH_API_BASE,
+    baseURL: `https://graph.facebook.com/${creds.apiVersion}`,
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
@@ -28,7 +30,7 @@ function buildClient(apiKeyEncrypted) {
  * @param {Array} components - Template variable components
  */
 async function sendTemplateMessage({ account, to, templateName, languageCode = 'en_US', components = [] }) {
-  const client = buildClient(account.api_key_encrypted);
+  const client = await buildClient(account);
 
   const payload = {
     messaging_product: 'whatsapp',
@@ -50,7 +52,7 @@ async function sendTemplateMessage({ account, to, templateName, languageCode = '
  * Submit a template to Meta for approval.
  */
 async function submitTemplate({ account, template }) {
-  const client = buildClient(account.api_key_encrypted);
+  const client = await buildClient(account);
 
   const payload = {
     name: template.name,
@@ -67,7 +69,7 @@ async function submitTemplate({ account, template }) {
  * Fetch template approval status from Meta.
  */
 async function getTemplateStatus({ account, metaTemplateId }) {
-  const client = buildClient(account.api_key_encrypted);
+  const client = await buildClient(account);
   const response = await client.get(`/${metaTemplateId}?fields=name,status,quality_score`);
   return response.data;
 }
@@ -76,16 +78,17 @@ async function getTemplateStatus({ account, metaTemplateId }) {
  * Get phone number details and quality rating.
  */
 async function getPhoneNumberInfo({ account }) {
-  const client = buildClient(account.api_key_encrypted);
+  const client = await buildClient(account);
   const response = await client.get(`/${account.phone_number_id}?fields=display_phone_number,quality_rating,name_status`);
   return response.data;
 }
 
 /**
- * Verify webhook token (called during Meta webhook setup).
+ * Verify webhook token dynamically.
  */
-function verifyWebhook(mode, token, challenge) {
-  if (mode === 'subscribe' && token === process.env.META_WEBHOOK_VERIFY_TOKEN) {
+async function verifyWebhook(mode, token, challenge) {
+  const { findMatchingWebhookToken } = require('./orgSettingsService');
+  if (mode === 'subscribe' && await findMatchingWebhookToken(token)) {
     return challenge;
   }
   return null;

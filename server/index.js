@@ -37,6 +37,8 @@ const analyticsRoutes = require('./routes/analytics');
 const notificationRoutes = require('./routes/notifications');
 const webhookRoutes = require('./routes/webhooks');
 const numberPoolRoutes = require('./routes/numberPool');
+const orgSettingsRoutes = require('./routes/orgSettings');
+const conversationRoutes = require('./routes/conversations');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -99,6 +101,8 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/number-pool', numberPoolRoutes);
+app.use('/api/org-settings', orgSettingsRoutes);
+app.use('/api/conversations', conversationRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

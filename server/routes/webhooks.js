@@ -7,11 +7,11 @@ const { createNotification } = require('../services/notificationService');
 const router = express.Router();
 
 // GET /webhooks/whatsapp — Meta webhook verification
-router.get('/whatsapp', (req, res) => {
+router.get('/whatsapp', async (req, res) => {
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
-  const result = verifyWebhook(mode, token, challenge);
+  const result = await verifyWebhook(mode, token, challenge);
   if (result) return res.status(200).send(result);
   res.sendStatus(403);
 });
@@ -22,12 +22,35 @@ router.post('/whatsapp', async (req, res) => {
   res.sendStatus(200);
 
   try {
+    const rawBody = req.body.toString();
+    const body = JSON.parse(rawBody);
+    
+    // Attempt dynamic token extraction by finding a matching org account
+    const { getMetaCredentials } = require('../services/orgSettingsService');
+    const { WhatsAppAccount } = require('../models');
+    
+    let metaAppSecret = process.env.META_APP_SECRET;
+    
+    // Dig into payload to find phone_number_id uniformly mapped by Meta inside metadata
+    const phoneNumId = body?.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id;
+    let orgId = null;
+    let accountInfo = null;
+
+    if (phoneNumId) {
+      accountInfo = await WhatsAppAccount.findOne({ where: { phone_number_id: phoneNumId } });
+      if (accountInfo) {
+        orgId = accountInfo.organization_id;
+        const creds = await getMetaCredentials(orgId);
+        metaAppSecret = creds.appSecret;
+      }
+    }
+
     // Verify HMAC signature
     const sig = req.headers['x-hub-signature-256'];
-    if (sig && process.env.META_APP_SECRET) {
+    if (sig && metaAppSecret) {
       const expected = 'sha256=' + crypto
-        .createHmac('sha256', process.env.META_APP_SECRET)
-        .update(req.body)
+        .createHmac('sha256', metaAppSecret)
+        .update(rawBody)
         .digest('hex');
       if (sig !== expected) {
         console.warn('⚠️  Webhook signature mismatch — ignoring');
@@ -35,11 +58,11 @@ router.post('/whatsapp', async (req, res) => {
       }
     }
 
-    const body = JSON.parse(req.body.toString());
     const events = parseWebhookPayload(body);
 
     for (const event of events) {
-      await handleWebhookEvent(event);
+      // Pass along the resolved account and org ID dynamically to the event handler
+      await handleWebhookEvent({ ...event, resolvedOrgId: orgId, resolvedAccountId: accountInfo?.id });
     }
   } catch (err) {
     console.error('Webhook processing error:', err);
@@ -109,28 +132,66 @@ async function handleWebhookEvent(event) {
         },
         { where: { phone_number: `+${event.from}`, organization_id: contact.organization_id } }
       );
-
-      // Log opt-out event for any recent campaign
-      const recentJob = await CampaignJob.findOne({
-        where: { contact_id: contact.id },
-        order: [['sent_at', 'DESC']],
-      });
-      if (recentJob) {
-        await TrackingEvent.create({
-          campaign_id: recentJob.campaign_id,
-          contact_id: contact.id,
-          event_type: 'opted_out',
-          metadata: { trigger: 'STOP keyword', message: event.text },
-        });
-      }
-      return;
     }
 
-    // Log reply event
+    // Log opt-out event for any recent campaign
     const recentJob = await CampaignJob.findOne({
       where: { contact_id: contact.id },
       order: [['sent_at', 'DESC']],
     });
+    if (event.isOptOut && recentJob) {
+      await TrackingEvent.create({
+        campaign_id: recentJob.campaign_id,
+        contact_id: contact.id,
+        event_type: 'opted_out',
+        metadata: { trigger: 'STOP keyword', message: event.text },
+      });
+    }
+
+    // ─── UPSERT CONVERSATION & MESSAGE INBOX ENGINE ─────────────────────────
+    const { Conversation, Message } = require('../models');
+
+    // 1. Upsert conversation
+    let conv = await Conversation.findOne({
+      where: { contact_id: contact.id, organization_id: contact.organization_id }
+    });
+
+    if (!conv) {
+      conv = await Conversation.create({
+        organization_id: contact.organization_id,
+        department_id: contact.department_id,
+        contact_id: contact.id,
+        campaign_id: recentJob ? recentJob.campaign_id : null,
+        whatsapp_account_id: event.resolvedAccountId,
+        status: 'open',
+        last_message_at: event.timestamp,
+        unread_count: 1
+      });
+    } else {
+      await conv.update({
+        status: conv.status === 'resolved' ? 'open' : conv.status,
+        last_message_at: event.timestamp,
+        whatsapp_account_id: event.resolvedAccountId, 
+        unread_count: conv.unread_count + 1
+      });
+    }
+
+    // 2. Create inbound message record
+    await Message.create({
+      conversation_id: conv.id,
+      organization_id: conv.organization_id,
+      contact_id: contact.id,
+      direction: 'inbound',
+      content: event.text,
+      meta_message_id: event.messageId,
+      status: 'delivered', // Incoming is implicitly delivered
+      sent_at: event.timestamp
+    });
+
+    // We can skip duplicate 'replied' TrackingEvents if the user is opting out, 
+    // but standard replies pass through below
+    if (event.isOptOut) return;
+
     if (recentJob) {
       await TrackingEvent.create({
         campaign_id: recentJob.campaign_id,

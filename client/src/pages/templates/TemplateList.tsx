@@ -27,11 +27,40 @@ export default function TemplateList() {
     finally { setSubmitting(null); }
   };
 
-  const del = async (id: string) => {
+  const del = async (id: string, fromMeta = false) => {
     const t = templates.find(t => t.id === id);
-    if (!window.confirm(`Delete "${t?.name}"?`)) return;
-    try { await api.delete(`/templates/${id}`); setTemplates(ts => ts.filter(t => t.id !== id)); toast.success('Deleted'); }
+    if (!window.confirm(`Delete "${t?.name}"${fromMeta ? ' globally from Meta entirely' : ''}?`)) return;
+    try { 
+      if (fromMeta) await api.delete(`/templates/${id}/meta`);
+      else await api.delete(`/templates/${id}`); 
+      setTemplates(ts => ts.filter(t => t.id !== id)); 
+      toast.success('Deleted'); 
+    }
     catch (err: any) { toast.error(err.response?.data?.error || 'Failed'); }
+  };
+
+  const syncStatus = async (id: string) => {
+    setSubmitting(`sync_${id}`);
+    try {
+      const { data } = await api.post(`/templates/${id}/sync-status`);
+      setTemplates(ts => ts.map(t => t.id === id ? { ...t, ...data } : t));
+      toast.success('Synced with Meta');
+    } catch (err: any) { toast.error('Failed to sync'); }
+    finally { setSubmitting(null); }
+  };
+
+  const duplicate = async (id: string) => {
+    try {
+      const { data } = await api.post(`/templates/${id}/duplicate`);
+      setTemplates([data, ...templates]);
+      toast.success('Duplicated as new draft');
+    } catch (err: any) { toast.error('Failed to duplicate'); }
+  };
+
+  const syncAll = async () => {
+    const pending = templates.filter(t => t.approval_status === 'pending');
+    for (const p of pending) await syncStatus(p.id);
+    toast.success('Batch sync complete');
   };
 
   const filtered = templates;
@@ -51,9 +80,9 @@ export default function TemplateList() {
       </div>
 
       <div className="tabs">
-        {['all','approved','pending','draft','rejected'].map(s => (
+        {['all','approved','pending','draft','rejected', 'approval-center'].map(s => (
           <button key={s} className={`tab ${filter === s ? 'act' : ''}`} onClick={() => setFilter(s)}>
-            {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+            {s === 'all' ? 'All' : s === 'approval-center' ? 'Approval Center 🔔' : s.charAt(0).toUpperCase() + s.slice(1)}
           </button>
         ))}
       </div>
@@ -69,6 +98,52 @@ export default function TemplateList() {
           <p className="empty-d">Create a template and submit it to Meta for approval.</p>
           <Link to="/templates/new" className="btn bp" style={{ marginTop: 10 }}>Create Template</Link>
         </div></div>
+      ) : filter === 'approval-center' ? (
+        <div style={{ maxWidth: 700 }}>
+          <div className="flex jsb fac mb14">
+            <div style={{ fontWeight: 800 }}>PENDING META REVIEW</div>
+            <button className="btn bg_" onClick={syncAll}>🔄 Sync Pending from Meta</button>
+          </div>
+          {filtered.filter(t => t.approval_status === 'pending').map(t => (
+            <div key={t.id} className="card mb14" style={{ borderLeft: '4px solid var(--yellow)', padding: '12px 14px' }}>
+              <div className="flex jsb">
+                <div style={{ fontWeight: 700, fontFamily: 'DM Mono,monospace' }}>{t.name}</div>
+                <div className="muted">{t.category} · {t.language} · v{t.version || 1}</div>
+              </div>
+              <div style={{ marginTop: 10, display: 'flex', gap: 6 }}>
+                <button className="btn bs bsm" onClick={() => syncStatus(t.id)} disabled={submitting === `sync_${t.id}`}>
+                  {submitting === `sync_${t.id}` ? '⟳' : '🔄 Sync Status'}
+                </button>
+                <button className="btn bd bsm" onClick={() => del(t.id, true)}>🗑 Withdraw</button>
+              </div>
+            </div>
+          ))}
+
+          <div style={{ fontWeight: 800, marginTop: 30, marginBottom: 14 }}>REJECTED - NEEDS ATTENTION</div>
+          {filtered.filter(t => t.approval_status === 'rejected').map(t => (
+            <div key={t.id} className="card mb14" style={{ borderLeft: '4px solid var(--red)', padding: '12px 14px' }}>
+              <div className="flex jsb">
+                <div style={{ fontWeight: 700, fontFamily: 'DM Mono,monospace' }}>{t.name}</div>
+                <div className="muted">{t.category} · {t.language} · v{t.version || 1}</div>
+              </div>
+              <div className="muted" style={{ margin: '8px 0', color: 'var(--red)' }}>❌ {t.rejection_reason || 'Rejected by Meta policies'}</div>
+              <div style={{ marginTop: 10, display: 'flex', gap: 6 }}>
+                <button className="btn bp bsm" onClick={() => duplicate(t.id)}>📋 Duplicate & Fix</button>
+                <button className="btn bd bsm" onClick={() => del(t.id, true)}>🗑 Delete</button>
+              </div>
+            </div>
+          ))}
+          
+          <div style={{ fontWeight: 800, marginTop: 30, marginBottom: 14 }}>APPROVED - READY TO USE</div>
+          <div className="g2">
+            {filtered.filter(t => t.approval_status === 'approved').map(t => (
+              <div key={t.id} className="card" style={{ borderLeft: '4px solid var(--green)', padding: '12px 14px' }}>
+                <div style={{ fontWeight: 700, fontFamily: 'DM Mono,monospace' }}>{t.name} ✅</div>
+                <div className="muted" style={{ marginTop: 6 }}>{t.category} · {t.language} · v{t.version || 1}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 12 }}>
           {filtered.map(t => (

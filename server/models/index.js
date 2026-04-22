@@ -239,6 +239,15 @@ const Notification = sequelize.define('Notification', {
   metadata: { type: DataTypes.JSONB, defaultValue: {} },
 }, { tableName: 'notifications', underscored: true, updatedAt: false });
 
+// ─── Org Settings ─────────────────────────────────────────────────────────────
+const OrgSettings = require('./OrgSettings')(sequelize);
+
+// ─── Conversation ─────────────────────────────────────────────────────────────
+const Conversation = require('./Conversation')(sequelize);
+
+// ─── Message ──────────────────────────────────────────────────────────────────
+const Message = require('./Message')(sequelize);
+
 // ─── Associations ─────────────────────────────────────────────────────────────
 Organization.hasMany(Department, { foreignKey: 'organization_id' });
 Organization.hasMany(User, { foreignKey: 'organization_id' });
@@ -274,6 +283,22 @@ Campaign.hasMany(CampaignJob, { foreignKey: 'campaign_id' });
 CampaignJob.belongsTo(Campaign, { foreignKey: 'campaign_id' });
 CampaignJob.belongsTo(Contact, { foreignKey: 'contact_id' });
 
+OrgSettings.belongsTo(Organization, { foreignKey: 'organization_id' });
+Organization.hasOne(OrgSettings, { foreignKey: 'organization_id' });
+
+Conversation.belongsTo(Organization, { foreignKey: 'organization_id' });
+Conversation.belongsTo(Department, { foreignKey: 'department_id' });
+Conversation.belongsTo(Contact, { foreignKey: 'contact_id' });
+Conversation.belongsTo(Campaign, { foreignKey: 'campaign_id' });
+Conversation.belongsTo(WhatsAppAccount, { foreignKey: 'whatsapp_account_id' });
+Conversation.belongsTo(User, { as: 'assignedTo', foreignKey: 'assigned_to' });
+Conversation.hasMany(Message, { foreignKey: 'conversation_id' });
+
+Message.belongsTo(Conversation, { foreignKey: 'conversation_id' });
+Message.belongsTo(Organization, { foreignKey: 'organization_id' });
+Message.belongsTo(Contact, { foreignKey: 'contact_id' });
+Message.belongsTo(User, { as: 'sender', foreignKey: 'sent_by_user_id' });
+
 module.exports = {
   sequelize,
   Organization,
@@ -289,4 +314,7 @@ module.exports = {
   AuditLog,
   Notification,
   NumberAssignment,
+  OrgSettings,
+  Conversation,
+  Message,
 };
