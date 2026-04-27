@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 
-interface Campaign { id:string; name:string; status:string; sent_count:number; total_recipients:number; created_at:string; scheduled_at?:string; MessageTemplate?:{name:string;category:string}; }
+interface Campaign { id:string; name:string; status:string; sent_count:number; read_count?:number; total_recipients:number; created_at:string; scheduled_at?:string; MessageTemplate?:{name:string;category:string}; }
 
 const STATUS_CLASS: Record<string,string> = { completed:'b-completed', sending:'b-sending', paused:'b-paused', failed:'b-failed', scheduled:'b-scheduled', draft:'b-draft' };
 
@@ -50,7 +50,7 @@ export default function CampaignList() {
   const filtered = camps.filter(c => !search || c.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div>
+    <div className="page act">
       <div className="sec-h">
         <div>
           <div className="sec-t">Campaigns</div>
@@ -129,7 +129,7 @@ export default function CampaignList() {
                           <span style={{ marginLeft: 5, fontSize: '0.68rem', background: 'rgba(255,255,255,.06)', padding: '1px 5px', borderRadius: 3 }}>{c.MessageTemplate.category}</span>
                         )}
                       </td>
-                      <td><span className={`badge ${STATUS_CLASS[c.status] || 'b-draft'}`}>{c.status}</span></td>
+                      <td><span className={`badge b-${c.status}`}>{c.status}</span></td>
                       <td style={{ minWidth: 130 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                           <div className="prog" style={{ flex: 1 }}>

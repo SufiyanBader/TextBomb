@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 
 interface Stats { sent:number; delivered:number; read:number; replied:number; failed:number; opted_out:number; delivery_rate:number; read_rate:number; total_campaigns:number; }
-interface Campaign { id:string; name:string; status:string; sent_count:number; total_recipients:number; created_at:string; }
+interface Campaign { id:string; name:string; status:string; sent_count:number; read_count?:number; total_recipients:number; created_at:string; scheduled_at?:string; MessageTemplate?:{name:string;category:string}; }
 
 const STATUS_COLOR: Record<string,string> = { completed:'var(--green)', sending:'var(--purple)', paused:'var(--yellow)', failed:'var(--red)', scheduled:'var(--teal)', draft:'var(--tx4)' };
 const STATUS_CLASS: Record<string,string> = { completed:'b-completed', sending:'b-sending', paused:'b-paused', failed:'b-failed', scheduled:'b-scheduled', draft:'b-draft' };
@@ -142,56 +142,44 @@ export default function Overview() {
             </ResponsiveContainer>
           </div>
         </div>
-
-        {/* Funnel */}
-        <div className="card">
-          <div className="card-h"><div className="card-t">Delivery Funnel</div></div>
-          <div className="card-b">
-            {stats ? buildFunnel([
-              { label: '📤 Sent', val: stats.sent, color: 'rgba(108,71,255,.7)' },
-              { label: '✅ Delivered', val: stats.delivered, color: 'rgba(74,222,128,.7)' },
-              { label: '👁 Read', val: stats.read, color: 'rgba(45,212,191,.7)' },
-              { label: '💬 Replied', val: stats.replied, color: 'rgba(250,204,21,.7)' },
-            ]) : <div className="spinner" />}
-          </div>
-        </div>
       </div>
 
-      {/* Recent Campaigns */}
-      <div className="card">
+      <div className="card" style={{ marginTop: 14 }}>
         <div className="card-h">
-          <div className="card-t">Recent Campaigns</div>
+          <div>
+            <div className="card-t">Recent Campaigns</div>
+            <div className="card-sub">Latest 5 campaigns and their current status</div>
+          </div>
           <Link to="/campaigns" className="btn bs bsm">View All →</Link>
         </div>
-        {loading ? (
-          <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[1, 2, 3].map(i => <div key={i} style={{ height: 44, borderRadius: 8, background: 'var(--bg3)', animation: 'pulse 1.5s ease infinite' }} />)}
-          </div>
-        ) : campaigns.length === 0 ? (
-          <div className="empty">
-            <div className="empty-ic">📭</div>
-            <h3 className="empty-t">No campaigns yet</h3>
-            <p className="empty-d">Create your first campaign to start sending.</p>
-            <Link to="/campaigns/new" className="btn bp bsm" style={{ marginTop: 10 }}>Create Campaign</Link>
-          </div>
-        ) : (
-          <div className="twrap">
-            <table className="tbl">
-              <thead><tr><th>Campaign</th><th>Status</th><th>Sent</th><th>Date</th><th></th></tr></thead>
-              <tbody>
-                {campaigns.map(c => (
-                  <tr key={c.id}>
-                    <td style={{ fontWeight: 600 }}>{c.name}</td>
-                    <td><span className={`badge ${STATUS_CLASS[c.status] || 'b-draft'}`}>{c.status}</span></td>
-                    <td className="mono">{c.sent_count} / {c.total_recipients}</td>
-                    <td style={{ color: 'var(--tx4)', fontSize: '0.78rem' }}>{new Date(c.created_at).toLocaleDateString()}</td>
-                    <td><Link to={`/campaigns/${c.id}/analytics`} className="btn bs bsm">📊</Link></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <div className="twrap">
+          <table className="tbl">
+            <thead>
+              <tr><th>Campaign</th><th>Status</th><th>Sent</th><th>Read</th><th>Date</th><th></th></tr>
+            </thead>
+            <tbody>
+              {loading ? [1,2,3].map(i => (
+                <tr key={i}>
+                  <td><div style={{ height: 16, width: 120, background: 'var(--bg3)', borderRadius: 4, animation: 'pulse 1.5s infinite' }} /></td>
+                  <td><div style={{ height: 20, width: 60, background: 'var(--bg3)', borderRadius: 10 }} /></td>
+                  <td colSpan={4}><div style={{ height: 16, width: '100%', background: 'var(--bg3)', borderRadius: 4 }} /></td>
+                </tr>
+              )) : campaigns.map(c => (
+                <tr key={c.id}>
+                  <td style={{ fontWeight: 600 }}>{c.name}</td>
+                  <td><span className={`badge b-${c.status}`}>{c.status}</span></td>
+                  <td>{c.sent_count.toLocaleString()}</td>
+                  <td>{Math.round((c.read_count || 0) / (c.sent_count || 1) * 100)}%</td>
+                  <td style={{ color: 'var(--tx4)', fontSize: '0.78rem' }}>{new Date(c.created_at).toLocaleDateString()}</td>
+                  <td><Link to={`/campaigns/${c.id}/analytics`} className="btn bs bsm">📊</Link></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!loading && campaigns.length === 0 && (
+            <div className="muted" style={{ padding: 40, textAlign: 'center' }}>No campaigns found.</div>
+          )}
+        </div>
       </div>
     </div>
   );

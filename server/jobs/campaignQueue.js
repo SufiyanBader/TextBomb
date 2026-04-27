@@ -174,7 +174,7 @@ async function enqueueCampaign(campaign, contacts, account, template) {
         languageCode: template.language,
         components: buildComponents(template.components_json, campaign.template_variables),
       },
-      opts: { delay, priority: 1 },
+      opts: { jobId: `camp-${campaign.id}-${contact.id}`, delay, priority: 1 },
     }));
 
     await campaignQueue.addBulk(jobs);

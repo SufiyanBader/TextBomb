@@ -181,6 +181,11 @@ const Campaign = sequelize.define('Campaign', {
   completed_at: { type: DataTypes.DATE },
   total_recipients: { type: DataTypes.INTEGER, defaultValue: 0 },
   sent_count: { type: DataTypes.INTEGER, defaultValue: 0 },
+  delivered_count: { type: DataTypes.INTEGER, defaultValue: 0 },
+  read_count: { type: DataTypes.INTEGER, defaultValue: 0 },
+  replied_count: { type: DataTypes.INTEGER, defaultValue: 0 },
+  failed_count: { type: DataTypes.INTEGER, defaultValue: 0 },
+  opted_out_count: { type: DataTypes.INTEGER, defaultValue: 0 },
   template_variables: { type: DataTypes.JSONB, defaultValue: {} },
 }, { tableName: 'campaigns', underscored: true });
 

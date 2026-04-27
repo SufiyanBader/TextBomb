@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       api.get('/auth/me')
         .then(({ data }) => {
           setUser({ id: data.id, name: data.name, email: data.email, role: data.role, department_id: data.department_id });
-          setOrg(data.Organization);
+          setOrg(data.Organization || data.organization);
         })
         .catch(() => localStorage.clear())
         .finally(() => setLoading(false));

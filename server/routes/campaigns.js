@@ -111,7 +111,7 @@ router.post('/', requireRole('super_admin', 'dept_admin', 'member'), [
       template_variables: template_variables || {},
     });
 
-    res.status(201).json(campaign);
+      res.status(201).json(campaign);
   } catch (err) { next(err); }
 });
 
@@ -211,9 +211,17 @@ async function launchCampaign(campaignId) {
 
   if (!account) throw new Error('No active WhatsApp account available');
 
-  // Fetch eligible contacts
+  // Fetch contacts who haven't received a message from this campaign yet
+  const { CampaignJob } = require('../models');
+  const sentJobs = await CampaignJob.findAll({
+    where: { campaign_id: campaignId, status: ['sent', 'delivered', 'read'] },
+    attributes: ['contact_id']
+  });
+  const sentIds = sentJobs.map(j => j.contact_id);
+
   const contacts = await Contact.findAll({
     where: {
+      id: { [Op.notIn]: sentIds },
       list_id: { [Op.in]: campaign.list_ids },
       organization_id: campaign.organization_id,
       opt_in_status: true,
@@ -221,9 +229,15 @@ async function launchCampaign(campaignId) {
     },
   });
 
-  if (contacts.length === 0) throw new Error('No eligible contacts found');
+  if (contacts.length === 0) {
+    if (sentIds.length > 0) {
+      await campaign.update({ status: 'completed', completed_at: new Date() });
+      return;
+    }
+    throw new Error('No eligible contacts found');
+  }
 
-  // Create campaign job records
+  // Create campaign job records for new contacts
   const jobRecords = contacts.map((c) => ({
     campaign_id: campaign.id,
     contact_id: c.id,
@@ -232,12 +246,12 @@ async function launchCampaign(campaignId) {
   }));
   await CampaignJob.bulkCreate(jobRecords, { ignoreDuplicates: true });
 
-  await campaign.update({ status: 'sending', started_at: new Date() });
+  await campaign.update({ status: 'sending', started_at: campaign.started_at || new Date() });
 
   // Enqueue to Bull
   await enqueueCampaign(campaign, contacts, account, campaign.MessageTemplate);
 
-  console.log(`🚀 Campaign "${campaign.name}" launched: ${contacts.length} contacts`);
+  console.log(`🚀 Campaign "${campaign.name}" ${sentIds.length > 0 ? 'resumed' : 'launched'}: ${contacts.length} contacts remaining`);
 }
 
 module.exports = router;

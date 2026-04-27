@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../utils/api';
 
 export default function Sidebar() {
   const { user, org, logout, isRole } = useAuth();
@@ -11,11 +12,8 @@ export default function Sidebar() {
     if (!org) return;
     const fetchUnread = async () => {
       try {
-        const res = await fetch('/api/conversations/unread-count', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        const data = await res.json();
-        if (data.unreadCount !== undefined) setUnreadCount(data.unreadCount);
+        const res = await api.get('/conversations/unread-count');
+        if (res.data.unreadCount !== undefined) setUnreadCount(res.data.unreadCount);
       } catch (err) {}
     };
     fetchUnread();

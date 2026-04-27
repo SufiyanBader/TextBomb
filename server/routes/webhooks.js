@@ -94,6 +94,12 @@ async function handleWebhookEvent(event) {
       metadata: { errors: event.errors },
     });
 
+    // Increment campaign counters
+    const { Campaign } = require('../models');
+    if (newStatus === 'delivered') await Campaign.increment('delivered_count', { where: { id: job.campaign_id } });
+    if (newStatus === 'read') await Campaign.increment('read_count', { where: { id: job.campaign_id } });
+    if (newStatus === 'failed') await Campaign.increment('failed_count', { where: { id: job.campaign_id } });
+
     // High bounce rate alert: check if >10% of campaign failed
     if (event.status === 'failed') {
       const [total, failed] = await Promise.all([
@@ -146,6 +152,8 @@ async function handleWebhookEvent(event) {
         event_type: 'opted_out',
         metadata: { trigger: 'STOP keyword', message: event.text },
       });
+      const { Campaign } = require('../models');
+      await Campaign.increment('opted_out_count', { where: { id: recentJob.campaign_id } });
     }
 
     // ─── UPSERT CONVERSATION & MESSAGE INBOX ENGINE ─────────────────────────
@@ -199,6 +207,8 @@ async function handleWebhookEvent(event) {
         event_type: 'replied',
         metadata: { message: event.text },
       });
+      const { Campaign } = require('../models');
+      await Campaign.increment('replied_count', { where: { id: recentJob.campaign_id } });
     }
   }
 }
