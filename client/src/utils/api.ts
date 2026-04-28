@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL || '/api',
-  timeout: 30000,
+  timeout: 10000, // Reduced to 10s to prevent freezing
 });
 
 // Attach JWT to every request

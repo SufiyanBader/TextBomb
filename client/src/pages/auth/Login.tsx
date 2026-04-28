@@ -17,7 +17,8 @@ export default function Login() {
       await login(form.email, form.password);
       navigate('/dashboard');
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Invalid email or password');
+      const msg = err.code === 'ECONNABORTED' ? 'Connection timed out. Please check your internet or server status.' : (err.response?.data?.error || err.response?.data?.errors?.[0]?.msg || 'Login failed');
+      toast.error(msg);
     } finally { setLoading(false); }
   };
 

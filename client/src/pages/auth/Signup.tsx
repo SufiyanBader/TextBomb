@@ -38,7 +38,8 @@ export default function Signup() {
       await signup(form);
       navigate('/onboarding');
     } catch (err: any) {
-      toast.error(err.response?.data?.error || err.response?.data?.errors?.[0]?.msg || 'Signup failed');
+      const msg = err.code === 'ECONNABORTED' ? 'Connection timed out. Please check your internet or server status.' : (err.response?.data?.error || err.response?.data?.errors?.[0]?.msg || 'Signup failed');
+      toast.error(msg);
     } finally { setLoading(false); }
   };
 

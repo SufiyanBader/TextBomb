@@ -22,10 +22,19 @@ function getRedis() {
   return client;
 }
 
-// Store refresh token (7 days TTL)
+// Store refresh token (7 days TTL) - with 2s timeout safety
 async function storeRefreshToken(userId, token) {
-  const redis = getRedis();
-  await redis.setEx(`refresh:${userId}`, 7 * 24 * 60 * 60, token);
+  try {
+    const redis = getRedis();
+    // We don't want Redis failure to block user login/signup entirely
+    await Promise.race([
+      redis.setEx(`refresh:${userId}`, 7 * 24 * 60 * 60, token),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Redis timeout')), 2000))
+    ]);
+  } catch (err) {
+    console.error('Redis storeRefreshToken error:', err.message);
+    // Non-fatal: user will just have to login again when access token expires
+  }
 }
 
 async function getRefreshToken(userId) {
