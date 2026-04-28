@@ -48,8 +48,10 @@ router.post('/signup', [
     // Hash password
     const password_hash = await bcrypt.hash(password, 12);
 
-    // Create org + super admin in a transaction
+    // Create org + super admin + default settings in a transaction
     const result = await require('../models').sequelize.transaction(async (t) => {
+      const { Organization, User, OrgSettings } = require('../models');
+      
       const org = await Organization.create({
         name: companyName,
         domain: domain || null,
@@ -62,6 +64,11 @@ router.post('/signup', [
         password_hash,
         role: 'super_admin',
         status: 'active',
+      }, { transaction: t });
+
+      await OrgSettings.create({
+        organization_id: org.id,
+        unsub_company: companyName,
       }, { transaction: t });
 
       return { org, user };
