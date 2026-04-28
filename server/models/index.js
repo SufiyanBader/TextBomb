@@ -3,7 +3,7 @@ const { Sequelize, DataTypes } = require('sequelize');
 let sequelize;
 
 const dbUri = process.env.DATABASE_URL;
-const sslOptions = (dbUri?.includes('railway.app') || process.env.PGHOST?.includes('railway.app')) 
+const sslOptions = (dbUri?.includes('railway.app') || dbUri?.includes('neon.tech') || process.env.PGHOST?.includes('railway.app') || process.env.PGHOST?.includes('neon.tech')) 
   ? { require: true, rejectUnauthorized: false }
   : false;
 
